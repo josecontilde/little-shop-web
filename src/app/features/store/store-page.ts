@@ -5,12 +5,7 @@ import { BadgeModule } from 'primeng/badge';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { CandyStoreService } from '../../core/candy-store.service';
-
-declare class BarcodeDetector {
-  constructor(options?: { formats?: string[] });
-  detect(image: HTMLVideoElement): Promise<{ rawValue: string }[]>;
-  static getSupportedFormats(): Promise<string[]>;
-}
+import { Scanner } from '../../core/scanner';
 
 @Component({
   selector: 'app-store-page',
@@ -27,8 +22,7 @@ export class StorePage {
   readonly scannerOpen = signal(false);
   readonly scannerLoading = signal(false);
   readonly scannerMessage = signal('');
-  private stream: MediaStream | null = null;
-  private scanInterval: ReturnType<typeof setInterval> | null = null;
+  private scanner = new Scanner();
 
   openYapeModal() {
     this.yapeStep.set(1);
@@ -61,9 +55,7 @@ export class StorePage {
     this.scannerMessage.set('Activando cámara…');
 
     if (!('BarcodeDetector' in window)) {
-      this.scannerMessage.set('Tu navegador no soporta el escáner. Usa Chrome o Edge.');
-      this.scannerLoading.set(false);
-      return;
+      this.scannerMessage.set('Preparando escáner…');
     }
 
     const video = document.querySelector<HTMLVideoElement>('#store-scanner-video');
@@ -74,50 +66,27 @@ export class StorePage {
     }
 
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      video.srcObject = this.stream;
-      await video.play();
-
-      const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e', 'qr_code'] });
       this.scannerLoading.set(false);
       this.scannerMessage.set('Enfoca el código de barras del producto.');
-
-      this.scanInterval = setInterval(async () => {
-        if (video.readyState < video.HAVE_ENOUGH_DATA) return;
-        try {
-          const barcodes = await detector.detect(video);
-          if (barcodes.length > 0) {
-            const code = barcodes[0].rawValue;
-            this.stopCamera();
-            this.scannerMessage.set(`Código detectado: ${code}`);
-            const product = this.store.products().find((p) => p.barcode === code);
-            if (product) {
-              this.store.addToCart(product);
-              this.scannerMessage.set(`¡${product.name} agregado al carrito!`);
-              setTimeout(() => this.closeScanner(), 1200);
-            } else {
-              this.scannerMessage.set('Producto no registrado. Pide al admin agregarlo.');
-            }
-          }
-        } catch { /* ignore mid-frame errors */ }
-      }, 300);
+      await this.scanner.start(video, (code) => {
+        this.scannerMessage.set(`Código detectado: ${code}`);
+        const product = this.store.products().find((p) => p.barcode === code);
+        if (product) {
+          this.store.addToCart(product);
+          this.scannerMessage.set(`¡${product.name} agregado al carrito!`);
+          setTimeout(() => this.closeScanner(), 1200);
+        } else {
+          this.scannerMessage.set('Producto no registrado. Pide al admin agregarlo.');
+        }
+      });
     } catch {
       this.scannerMessage.set('No se pudo acceder a la cámara.');
       this.scannerLoading.set(false);
     }
   }
 
-  private stopCamera() {
-    if (this.scanInterval !== null) {
-      clearInterval(this.scanInterval);
-      this.scanInterval = null;
-    }
-    this.stream?.getTracks().forEach((t) => t.stop());
-    this.stream = null;
-  }
-
   closeScanner() {
-    this.stopCamera();
+    this.scanner.stop();
     this.scannerOpen.set(false);
     this.scannerMessage.set('');
   }
