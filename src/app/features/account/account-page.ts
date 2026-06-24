@@ -38,7 +38,7 @@ type StatusFilter = 'all' | 'pending' | 'paid';
 export class AccountPage {
   readonly store = inject(CandyStoreService);
   readonly statusFilter = signal<StatusFilter>('all');
-  readonly monthFilter = signal<string>('all');
+  readonly monthFilter = signal<string>(new Date().toISOString().slice(0, 7));
   readonly statusFilters: { value: StatusFilter; label: string }[] = [
     { value: 'all', label: 'Todo' },
     { value: 'pending', label: 'Pendiente' },
@@ -84,6 +84,6 @@ export class AccountPage {
 
   formatMonth(m: string) {
     const [y, mo] = m.split('-');
-    return new Date(+y, +mo - 1).toLocaleDateString('es-PE', { month: 'short', year: '2-digit' });
+    return new Date(+y, +mo - 1).toLocaleDateString('es-PE', { month: 'short' });
   }
 }

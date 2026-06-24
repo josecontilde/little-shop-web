@@ -40,7 +40,7 @@ type AuthUser = {
 @Injectable({ providedIn: 'root' })
 export class CandyStoreService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${window.location.protocol}//${window.location.hostname}:3000/api`;
+  private readonly apiUrl = `https://little-shop-core.beweregroup.com/api`;
 
   readonly view = signal<View>('store');
   readonly adminSection = signal<AdminSection>('dashboard');
@@ -224,7 +224,7 @@ export class CandyStoreService {
     const name = this.suggestionName().trim();
     const reason = this.suggestionReason().trim();
 
-    if (!name || !reason) {
+    if (!name) {
       return;
     }
 

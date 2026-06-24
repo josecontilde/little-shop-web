@@ -137,21 +137,7 @@
         }
       </div>
 
-      @if (pendingInFilter().length > 1) {
-        <div class="mb-3 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-          <span class="text-sm font-semibold text-amber-800">
-            {{ pendingInFilter().length }} pagos pendientes
-          </span>
-          <button
-            type="button"
-            class="flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-amber-700"
-            (click)="payAll()"
-          >
-            <svg lucideCreditCard class="size-3.5" />
-            Pagar todo
-          </button>
-        </div>
-      }
+
 
       <div class="space-y-2">
         @for (record of filteredHistory(); track record.id) {
@@ -192,16 +178,7 @@
                 <strong class="text-base font-bold text-slate-900">{{
                   record.total | currency: 'S/. '
                 }}</strong>
-                @if (!record.paid) {
-                  <button
-                    type="button"
-                    class="flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-bold text-white transition hover:bg-indigo-700"
-                    (click)="store.payConsumption(record.id)"
-                  >
-                    <svg lucideCreditCard class="size-3" />
-                    Pagar
-                  </button>
-                }
+
               </div>
             </div>
           </article>
@@ -288,9 +265,9 @@
       <svg lucideMessageSquare class="size-4 text-indigo-600" />
       <h2 class="font-bold text-slate-900">Sugerir un producto</h2>
     </div>
-    <form class="grid gap-3 sm:grid-cols-[1fr_1fr_auto]" (ngSubmit)="store.submitSuggestion()">
+    <form class="flex flex-wrap items-end gap-3" (ngSubmit)="store.submitSuggestion()">
       <input
-        class="rounded-xl border border-indigo-100 px-3 py-2.5 text-sm outline-none focus:border-indigo-500"
+        class="min-w-0 flex-1 rounded-xl border border-indigo-100 px-3 py-2.5 text-sm outline-none focus:border-indigo-500"
         name="suggestionName"
         type="text"
         placeholder="Nombre del producto"
@@ -298,17 +275,17 @@
         (ngModelChange)="store.suggestionName.set($event)"
       />
       <input
-        class="rounded-xl border border-indigo-100 px-3 py-2.5 text-sm outline-none focus:border-indigo-500"
+        class="min-w-0 flex-1 rounded-xl border border-indigo-100 px-3 py-2.5 text-sm outline-none focus:border-indigo-500"
         name="suggestionReason"
         type="text"
-        placeholder="¿Por qué debería estar en el stand?"
+        placeholder="Comentario (opcional)"
         [ngModel]="store.suggestionReason()"
         (ngModelChange)="store.suggestionReason.set($event)"
       />
       <button
         type="submit"
         class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:opacity-50"
-        [disabled]="!store.suggestionName().trim() || !store.suggestionReason().trim()"
+        [disabled]="!store.suggestionName().trim()"
       >
         Enviar
       </button>
