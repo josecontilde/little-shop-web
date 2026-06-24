@@ -196,10 +196,10 @@
               </div>
               <div class="scanner-body">
                 @if (scannerLoading()) {
-                  <div class="scanner-loading">Activando cámara…</div>
+                  <div class="scanner-loading">{{ scannerMessage() || 'Activando cámara…' }}</div>
                 }
-                <video id="admin-scanner-video" class="scanner-video" [class.hidden]="scannerLoading()" playsinline></video>
-                @if (scannerMessage()) {
+                <div id="admin-scanner-container" class="scanner-container" [class.hidden]="scannerLoading()"></div>
+                @if (scannerMessage() && !scannerLoading()) {
                   <div class="scanner-status">{{ scannerMessage() }}</div>
                 }
               </div>

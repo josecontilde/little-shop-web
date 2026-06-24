@@ -28,24 +28,21 @@ export class AdminPage {
     this.scannerLoading.set(true);
     this.scannerMessage.set('Activando cámara…');
 
-    if (!('BarcodeDetector' in window)) {
-      this.scannerMessage.set('Preparando escáner…');
-    }
-
-    const video = document.querySelector<HTMLVideoElement>('#admin-scanner-video');
-    if (!video) {
+    const container = document.querySelector<HTMLDivElement>('#admin-scanner-container');
+    if (!container) {
       this.scannerMessage.set('Error interno. Intenta de nuevo.');
       this.scannerLoading.set(false);
       return;
     }
 
     try {
-      this.scannerLoading.set(false);
-      this.scannerMessage.set('Enfoca el código de barras del producto.');
-      await this.scanner.start(video, async (code) => {
+      this.scannerMessage.set('Preparando escáner…');
+      await this.scanner.start(container, async (code) => {
         this.scannerMessage.set(`Código detectado: ${code}`);
         await this.handleDetectedCode(code);
       });
+      this.scannerLoading.set(false);
+      this.scannerMessage.set('Enfoca el código de barras del producto.');
     } catch {
       this.scannerMessage.set('No se pudo acceder a la cámara.');
       this.scannerLoading.set(false);

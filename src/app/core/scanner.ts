@@ -11,17 +11,18 @@ export class Scanner {
   private stream: MediaStream | null = null;
   private scanInterval: ReturnType<typeof setInterval> | null = null;
   private stopped = false;
+  private videoEl: HTMLVideoElement | null = null;
 
   async start(
-    videoEl: HTMLVideoElement,
+    container: HTMLElement,
     onDetected: ScanCallback,
   ): Promise<void> {
     this.stopped = false;
 
     if ('BarcodeDetector' in window) {
-      return this.startNative(videoEl, onDetected);
+      return this.startNative(container, onDetected);
     }
-    return this.startQuagga(videoEl, onDetected);
+    return this.startQuagga(container, onDetected);
   }
 
   stop() {
@@ -32,6 +33,11 @@ export class Scanner {
     }
     this.stream?.getTracks().forEach((t) => t.stop());
     this.stream = null;
+    if (this.videoEl) {
+      this.videoEl.srcObject = null;
+      this.videoEl.remove();
+      this.videoEl = null;
+    }
     try {
       Quagga.stop();
     } catch {
@@ -39,10 +45,26 @@ export class Scanner {
     }
   }
 
+  get isRunning(): boolean {
+    return !this.stopped;
+  }
+
   private async startNative(
-    video: HTMLVideoElement,
+    container: HTMLElement,
     onDetected: ScanCallback,
   ): Promise<void> {
+    const video = document.createElement('video');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('autoplay', '');
+    video.setAttribute('muted', '');
+    video.muted = true;
+    video.style.width = '100%';
+    video.style.maxHeight = '420px';
+    video.style.objectFit = 'cover';
+    video.style.background = '#000';
+    container.appendChild(video);
+    this.videoEl = video;
+
     this.stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
     });
@@ -71,7 +93,7 @@ export class Scanner {
   }
 
   private startQuagga(
-    videoEl: HTMLVideoElement,
+    container: HTMLElement,
     onDetected: ScanCallback,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -79,9 +101,10 @@ export class Scanner {
         {
           inputStream: {
             type: 'LiveStream',
-            target: videoEl,
+            target: container,
             constraints: {
               facingMode: 'environment',
+              aspectRatio: { min: 1, max: 2 },
             },
           },
           decoder: {
