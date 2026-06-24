@@ -7,7 +7,7 @@ import { DialogModule } from 'primeng/dialog';
 import { DynamicToastService } from 'ngx-dynamic-toast';
 import { readBarcodes } from 'zxing-wasm/reader';
 import { CandyStoreService } from '../../core/candy-store.service';
-import { Scanner } from '../../core/scanner';
+import { Scanner, prewarmZXing } from '../../core/scanner';
 
 @Component({
   selector: 'app-store-page',
@@ -26,7 +26,10 @@ export class StorePage {
   readonly scannerOpen = signal(false);
   readonly scannerLoading = signal(false);
   readonly scannerMessage = signal('');
+  readonly showScanHint = signal(false);
   private scanner = new Scanner();
+  private scannerStartTime = 0;
+  private hintTimeout: ReturnType<typeof setTimeout> | null = null;
 
   openYapeModal() {
     this.yapeStep.set(1);
@@ -51,12 +54,16 @@ export class StorePage {
   openScanner() {
     this.scannerMessage.set('');
     this.scannerOpen.set(true);
+    this.showScanHint.set(false);
+    prewarmZXing();
     setTimeout(() => this.startCamera(), 300);
   }
 
   private async startCamera() {
     this.scannerLoading.set(true);
     this.scannerMessage.set('Activando cámara…');
+    this.scannerStartTime = Date.now();
+    this.showScanHint.set(false);
 
     const container = document.querySelector<HTMLDivElement>('#store-scanner-container');
     if (!container) {
@@ -67,8 +74,8 @@ export class StorePage {
 
     try {
       this.scannerMessage.set('Preparando escáner…');
-      this.scannerMessage.set('Enfoca el código de barras del producto.');
       await this.scanner.start(container, (code) => {
+        this.clearHintTimeout();
         this.scannerMessage.set(`Código detectado: ${code}`);
         const product = this.store.products().find((p) => p.barcode === code);
         if (product) {
@@ -92,9 +99,22 @@ export class StorePage {
       });
       this.scannerLoading.set(false);
       this.scannerMessage.set('Enfoca el código de barras del producto.');
+
+      this.hintTimeout = setTimeout(() => {
+        if (this.scannerOpen() && !this.scannerLoading()) {
+          this.showScanHint.set(true);
+        }
+      }, 10000);
     } catch {
       this.scannerMessage.set('No se pudo acceder a la cámara.');
       this.scannerLoading.set(false);
+    }
+  }
+
+  private clearHintTimeout() {
+    if (this.hintTimeout) {
+      clearTimeout(this.hintTimeout);
+      this.hintTimeout = null;
     }
   }
 
@@ -154,8 +174,10 @@ export class StorePage {
   }
 
   closeScanner() {
+    this.clearHintTimeout();
     this.scanner.stop();
     this.scannerOpen.set(false);
     this.scannerMessage.set('');
+    this.showScanHint.set(false);
   }
 }

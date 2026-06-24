@@ -308,10 +308,15 @@
           <div class="scanner-status">{{ scannerMessage() }}</div>
         }
         <div class="scanner-actions">
+          @if (showScanHint() && !scannerLoading()) {
+            <div class="scanner-hint">
+              ¿No detecta? Toma una foto del código de barras.
+            </div>
+          }
           <button type="button" class="scanner-upload-btn" (click)="scanFromFile()" [disabled]="scanFileLoading()">
-            {{ scanFileLoading() ? 'Leyendo…' : 'Subir foto del código' }}
+            {{ scanFileLoading() ? 'Leyendo…' : 'Tomar foto del código' }}
           </button>
-          <input id="store-scanner-file-input" type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)" />
+          <input id="store-scanner-file-input" type="file" accept="image/*" capture="environment" class="hidden" (change)="onFileSelected($event)" />
         </div>
       </div>
     </div>

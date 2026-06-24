@@ -7,6 +7,17 @@ declare class BarcodeDetector {
 
 type ScanCallback = (code: string) => void;
 
+let wasmPrewarmed = false;
+
+export function prewarmZXing() {
+  if (wasmPrewarmed) return;
+  wasmPrewarmed = true;
+  readBarcodes(
+    new ImageData(new Uint8ClampedArray(4), 1, 1),
+    { formats: ['EAN13'], maxNumberOfSymbols: 0 },
+  ).catch(() => {});
+}
+
 export class Scanner {
   private stream: MediaStream | null = null;
   private scanInterval: ReturnType<typeof setInterval> | null = null;
@@ -15,6 +26,8 @@ export class Scanner {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private detections: { code: string; time: number }[] = [];
+  private decoding = false;
+  private frameCount = 0;
 
   async start(
     container: HTMLElement,
@@ -22,6 +35,7 @@ export class Scanner {
   ): Promise<void> {
     this.stopped = false;
     this.detections = [];
+    this.frameCount = 0;
     container.innerHTML = '';
 
     if ('BarcodeDetector' in window) {
@@ -116,15 +130,18 @@ export class Scanner {
     await video.play();
 
     return new Promise((resolve) => {
-      this.scanInterval = setInterval(async () => {
+      const tick = async () => {
         if (this.stopped) return;
         await this.scanFrame(onDetected);
-      }, 350);
+        this.scanInterval = setTimeout(tick, 300);
+      };
+      tick();
       resolve();
     });
   }
 
   private async scanFrame(onDetected: ScanCallback) {
+    if (this.decoding) return;
     const video = this.videoEl;
     const canvas = this.canvas;
     const ctx = this.ctx;
@@ -134,21 +151,30 @@ export class Scanner {
     const vh = video.videoHeight;
     if (vw === 0 || vh === 0) return;
 
-    const stripHeight = Math.max(60, Math.round(vh * 0.35));
-    const stripY = Math.round((vh - stripHeight) / 2);
-
-    canvas.width = vw;
-    canvas.height = stripHeight;
-    ctx.drawImage(video, 0, stripY, vw, stripHeight, 0, 0, vw, stripHeight);
-
-    let imageData: ImageData;
-    try {
-      imageData = ctx.getImageData(0, 0, vw, stripHeight);
-    } catch {
-      return;
-    }
+    this.frameCount++;
+    this.decoding = true;
 
     try {
+      const useFullFrame = this.frameCount % 3 === 0;
+      let imageData: ImageData;
+
+      if (useFullFrame) {
+        const scale = Math.min(1, 640 / Math.max(vw, vh));
+        const fw = Math.round(vw * scale);
+        const fh = Math.round(vh * scale);
+        canvas.width = fw;
+        canvas.height = fh;
+        ctx.drawImage(video, 0, 0, vw, vh, 0, 0, fw, fh);
+        imageData = ctx.getImageData(0, 0, fw, fh);
+      } else {
+        const stripHeight = Math.max(80, Math.round(vh * 0.6));
+        const stripY = Math.round((vh - stripHeight) / 2);
+        canvas.width = vw;
+        canvas.height = stripHeight;
+        ctx.drawImage(video, 0, stripY, vw, stripHeight, 0, 0, vw, stripHeight);
+        imageData = ctx.getImageData(0, 0, vw, stripHeight);
+      }
+
       const results = await readBarcodes(imageData, {
         tryHarder: true,
         formats: [
@@ -179,6 +205,8 @@ export class Scanner {
       }
     } catch {
       /* ignore */
+    } finally {
+      this.decoding = false;
     }
   }
 }
