@@ -101,7 +101,7 @@ export class Scanner {
             return;
           }
           Quagga.start();
-          Quagga.onDetected((data: { codeResult: { code: string } }) => {
+          Quagga.onDetected((data: { codeResult: { code: string | null } }) => {
             if (this.stopped) return;
             this.stop();
             if (data.codeResult.code) onDetected(data.codeResult.code);
