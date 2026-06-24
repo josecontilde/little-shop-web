@@ -7,6 +7,7 @@ import {
   LucideSettings,
   LucideShoppingBag,
 } from '@lucide/angular';
+import { DynamicToastViewportComponent } from 'ngx-dynamic-toast';
 import { CandyStoreService } from './core/candy-store.service';
 import { AccountPage } from './features/account/account-page';
 import { AdminPage } from './features/admin/admin-page';
@@ -18,6 +19,7 @@ import { StorePage } from './features/store/store-page';
     AccountPage,
     AdminPage,
     StorePage,
+    DynamicToastViewportComponent,
     LucideCandy,
     LucideShoppingBag,
     LucideLayoutDashboard,

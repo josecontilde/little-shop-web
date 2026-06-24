@@ -4,6 +4,7 @@ import { LucideCandy, LucideCheckCircle, LucideScan, LucideShoppingBag } from '@
 import { BadgeModule } from 'primeng/badge';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
+import { DynamicToastService } from 'ngx-dynamic-toast';
 import { CandyStoreService } from '../../core/candy-store.service';
 import { Scanner } from '../../core/scanner';
 
@@ -15,6 +16,7 @@ import { Scanner } from '../../core/scanner';
 })
 export class StorePage {
   readonly store = inject(CandyStoreService);
+  readonly toast = inject(DynamicToastService);
   readonly yapeModalOpen = signal(false);
   readonly yapeStep = signal<1 | 2>(1);
   readonly yapeProofPreview = signal<string | null>(null);
@@ -63,6 +65,7 @@ export class StorePage {
 
     try {
       this.scannerMessage.set('Preparando escáner…');
+      this.scannerMessage.set('Enfoca el código de barras del producto.');
       await this.scanner.start(container, (code) => {
         this.scannerMessage.set(`Código detectado: ${code}`);
         const product = this.store.products().find((p) => p.barcode === code);
@@ -71,7 +74,18 @@ export class StorePage {
           this.scannerMessage.set(`¡${product.name} agregado al carrito!`);
           setTimeout(() => this.closeScanner(), 1200);
         } else {
-          this.scannerMessage.set('Producto no registrado. Pide al admin agregarlo.');
+          this.toast.warning('Producto no registrado', {
+            description: `Código: ${code}. Pide al administrador agregarlo.`,
+            duration: 5000,
+          });
+          this.scannerMessage.set('Producto no registrado. Escanea otro.');
+          this.scanner.stop();
+          this.scannerOpen.set(false);
+          setTimeout(() => {
+            this.scannerMessage.set('');
+            this.scannerOpen.set(true);
+            setTimeout(() => this.startCamera(), 300);
+          }, 1500);
         }
       });
       this.scannerLoading.set(false);
