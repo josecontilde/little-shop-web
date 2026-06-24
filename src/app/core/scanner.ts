@@ -19,6 +19,7 @@ export class Scanner {
     onDetected: ScanCallback,
   ): Promise<void> {
     this.stopped = false;
+    container.innerHTML = '';
 
     if ('BarcodeDetector' in window) {
       return this.startNative(container, onDetected);
@@ -63,10 +64,6 @@ export class Scanner {
     video.setAttribute('autoplay', '');
     video.setAttribute('muted', '');
     video.muted = true;
-    video.style.width = '100%';
-    video.style.maxHeight = '420px';
-    video.style.objectFit = 'cover';
-    video.style.background = '#000';
     container.appendChild(video);
     this.videoEl = video;
 
@@ -122,6 +119,8 @@ export class Scanner {
     container: HTMLElement,
     onDetected: ScanCallback,
   ): Promise<void> {
+    let detections: { code: string; time: number }[] = [];
+
     return new Promise((resolve, reject) => {
       Quagga.init(
         {
@@ -129,9 +128,7 @@ export class Scanner {
             type: 'LiveStream',
             target: container,
             constraints: {
-              width: { min: 640 },
-              height: { min: 480 },
-              facingMode: 'environment',
+              facingMode: { ideal: 'environment' },
             },
           },
           decoder: {
@@ -144,6 +141,7 @@ export class Scanner {
             ],
           },
           locate: false,
+          frequency: 10,
         },
         async (err: unknown) => {
           if (err) {
@@ -154,9 +152,18 @@ export class Scanner {
           Quagga.start();
           Quagga.onDetected((data: { codeResult: { code: string | null } }) => {
             if (this.stopped) return;
-            if (data.codeResult.code) {
+            const code = data.codeResult?.code;
+            if (!code || code.length < 3) return;
+
+            const now = Date.now();
+            detections = detections.filter((d) => now - d.time < 2000);
+            detections.push({ code, time: now });
+
+            const sameCode = detections.filter((d) => d.code === code);
+            if (sameCode.length >= 3) {
+              detections = [];
               this.stop();
-              onDetected(data.codeResult.code);
+              onDetected(code);
             }
           });
           resolve();
