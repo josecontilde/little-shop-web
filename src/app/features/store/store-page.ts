@@ -1,16 +1,17 @@
 import { CurrencyPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { LucideCandy, LucideCheckCircle, LucideScan, LucideShoppingBag } from '@lucide/angular';
+import { LucideCandy, LucideCheckCircle, LucideShoppingBag } from '@lucide/angular';
 import { BadgeModule } from 'primeng/badge';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { DynamicToastService } from 'ngx-dynamic-toast';
+import { readBarcodes } from 'zxing-wasm/reader';
 import { CandyStoreService } from '../../core/candy-store.service';
 import { Scanner } from '../../core/scanner';
 
 @Component({
   selector: 'app-store-page',
-  imports: [BadgeModule, ButtonModule, CurrencyPipe, LucideCandy, LucideCheckCircle, LucideScan, LucideShoppingBag, DialogModule],
+  imports: [BadgeModule, ButtonModule, CurrencyPipe, LucideCandy, LucideCheckCircle, LucideShoppingBag, DialogModule],
   templateUrl: './store-page.html',
   styleUrl: './store-page.css',
 })
@@ -20,6 +21,7 @@ export class StorePage {
   readonly yapeModalOpen = signal(false);
   readonly yapeStep = signal<1 | 2>(1);
   readonly yapeProofPreview = signal<string | null>(null);
+  readonly scanFileLoading = signal(false);
 
   readonly scannerOpen = signal(false);
   readonly scannerLoading = signal(false);
@@ -93,6 +95,61 @@ export class StorePage {
     } catch {
       this.scannerMessage.set('No se pudo acceder a la cámara.');
       this.scannerLoading.set(false);
+    }
+  }
+
+  scanFromFile() {
+    const input = document.querySelector<HTMLInputElement>('#store-scanner-file-input');
+    input?.click();
+  }
+
+  async onFileSelected(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    this.scanFileLoading.set(true);
+    this.scannerMessage.set('Leyendo imagen…');
+
+    try {
+      const results = await readBarcodes(file, {
+        tryHarder: true,
+        formats: ['EAN13', 'EAN8', 'UPCA', 'UPCE', 'Code128', 'Code39', 'ITF'],
+        maxNumberOfSymbols: 1,
+      });
+
+      if (results.length === 0) {
+        this.toast.error('No se detectó código', {
+          description: 'Prueba con otra foto o usa la cámara.',
+          duration: 4000,
+        });
+        return;
+      }
+
+      const code = results[0].text;
+      this.handleDetectedCode(code);
+    } catch {
+      this.toast.error('Error al leer imagen', {
+        description: 'Intenta con otra foto.',
+        duration: 4000,
+      });
+    } finally {
+      this.scanFileLoading.set(false);
+    }
+  }
+
+  private handleDetectedCode(code: string) {
+    this.scannerMessage.set(`Código detectado: ${code}`);
+    const product = this.store.products().find((p) => p.barcode === code);
+    if (product) {
+      this.store.addToCart(product);
+      this.scannerMessage.set(`¡${product.name} agregado al carrito!`);
+      setTimeout(() => this.closeScanner(), 1200);
+    } else {
+      this.toast.warning('Producto no registrado', {
+        description: `Código: ${code}. Pide al administrador agregarlo.`,
+        duration: 5000,
+      });
+      this.scannerMessage.set('Producto no registrado.');
     }
   }
 

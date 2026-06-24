@@ -301,10 +301,18 @@
         @if (scannerLoading()) {
           <div class="scanner-loading">{{ scannerMessage() || 'Activando cámara…' }}</div>
         }
-        <div id="store-scanner-container" class="scanner-container" [class.hidden]="scannerLoading()"></div>
+        <div id="store-scanner-container" class="scanner-container" [class.hidden]="scannerLoading()">
+          <div class="scanner-guide"></div>
+        </div>
         @if (scannerMessage() && !scannerLoading()) {
           <div class="scanner-status">{{ scannerMessage() }}</div>
         }
+        <div class="scanner-actions">
+          <button type="button" class="scanner-upload-btn" (click)="scanFromFile()" [disabled]="scanFileLoading()">
+            {{ scanFileLoading() ? 'Leyendo…' : 'Subir foto del código' }}
+          </button>
+          <input id="store-scanner-file-input" type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)" />
+        </div>
       </div>
     </div>
   </div>

@@ -108,6 +108,45 @@
   display: none;
 }
 
+.scanner-guide {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+  background: rgba(255, 0, 0, 0.8);
+  border-radius: 2px;
+  z-index: 2;
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+}
+
+.scanner-actions {
+  padding: 0.75rem 1.25rem;
+  text-align: center;
+}
+
+.scanner-upload-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.scanner-upload-btn:hover {
+  background: #f1f5f9;
+}
+
+.scanner-upload-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .scanner-status {
   padding: 0.75rem 1.25rem;
   font-size: 0.875rem;

@@ -1,4 +1,4 @@
-import Quagga from '@ericblade/quagga2';
+import { readBarcodes } from 'zxing-wasm/reader';
 
 declare class BarcodeDetector {
   constructor(options?: { formats?: string[] });
@@ -12,19 +12,22 @@ export class Scanner {
   private scanInterval: ReturnType<typeof setInterval> | null = null;
   private stopped = false;
   private videoEl: HTMLVideoElement | null = null;
-  private observer: MutationObserver | null = null;
+  private canvas: HTMLCanvasElement | null = null;
+  private ctx: CanvasRenderingContext2D | null = null;
+  private detections: { code: string; time: number }[] = [];
 
   async start(
     container: HTMLElement,
     onDetected: ScanCallback,
   ): Promise<void> {
     this.stopped = false;
+    this.detections = [];
     container.innerHTML = '';
 
     if ('BarcodeDetector' in window) {
       return this.startNative(container, onDetected);
     }
-    return this.startQuagga(container, onDetected);
+    return this.startZXing(container, onDetected);
   }
 
   stop() {
@@ -33,10 +36,6 @@ export class Scanner {
       clearInterval(this.scanInterval);
       this.scanInterval = null;
     }
-    if (this.observer) {
-      this.observer.disconnect();
-      this.observer = null;
-    }
     this.stream?.getTracks().forEach((t) => t.stop());
     this.stream = null;
     if (this.videoEl) {
@@ -44,11 +43,8 @@ export class Scanner {
       this.videoEl.remove();
       this.videoEl = null;
     }
-    try {
-      Quagga.stop();
-    } catch {
-      /* ignore */
-    }
+    this.canvas = null;
+    this.ctx = null;
   }
 
   get isRunning(): boolean {
@@ -94,81 +90,95 @@ export class Scanner {
     });
   }
 
-  private async ensureQuaggaVideoPlaysinline(container: HTMLElement) {
-    const video = container.querySelector('video');
-    if (video) {
-      video.setAttribute('playsinline', '');
-      video.setAttribute('muted', '');
-      video.muted = true;
-      return;
-    }
-    this.observer = new MutationObserver(() => {
-      const v = container.querySelector('video');
-      if (v) {
-        v.setAttribute('playsinline', '');
-        v.setAttribute('muted', '');
-        v.muted = true;
-        this.observer?.disconnect();
-        this.observer = null;
-      }
-    });
-    this.observer.observe(container, { childList: true, subtree: true });
-  }
-
-  private startQuagga(
+  private async startZXing(
     container: HTMLElement,
     onDetected: ScanCallback,
   ): Promise<void> {
-    let detections: { code: string; time: number }[] = [];
+    const video = document.createElement('video');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('autoplay', '');
+    video.setAttribute('muted', '');
+    video.muted = true;
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'cover';
+    video.style.background = '#000';
+    container.appendChild(video);
+    this.videoEl = video;
 
-    return new Promise((resolve, reject) => {
-      Quagga.init(
-        {
-          inputStream: {
-            type: 'LiveStream',
-            target: container,
-            constraints: {
-              facingMode: { ideal: 'environment' },
-            },
-          },
-          decoder: {
-            readers: [
-              'ean_reader',
-              'ean_8_reader',
-              'code_128_reader',
-              'upc_reader',
-              'upc_e_reader',
-            ],
-          },
-          locate: false,
-          frequency: 10,
-        },
-        async (err: unknown) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          await this.ensureQuaggaVideoPlaysinline(container);
-          Quagga.start();
-          Quagga.onDetected((data: { codeResult: { code: string | null } }) => {
-            if (this.stopped) return;
-            const code = data.codeResult?.code;
-            if (!code || code.length < 3) return;
+    this.canvas = document.createElement('canvas');
+    this.ctx = this.canvas.getContext('2d');
 
-            const now = Date.now();
-            detections = detections.filter((d) => now - d.time < 2000);
-            detections.push({ code, time: now });
-
-            const sameCode = detections.filter((d) => d.code === code);
-            if (sameCode.length >= 3) {
-              detections = [];
-              this.stop();
-              onDetected(code);
-            }
-          });
-          resolve();
-        },
-      );
+    this.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
     });
+    video.srcObject = this.stream;
+    await video.play();
+
+    return new Promise((resolve) => {
+      this.scanInterval = setInterval(async () => {
+        if (this.stopped) return;
+        await this.scanFrame(onDetected);
+      }, 350);
+      resolve();
+    });
+  }
+
+  private async scanFrame(onDetected: ScanCallback) {
+    const video = this.videoEl;
+    const canvas = this.canvas;
+    const ctx = this.ctx;
+    if (!video || !canvas || !ctx || video.readyState < video.HAVE_ENOUGH_DATA) return;
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (vw === 0 || vh === 0) return;
+
+    const stripHeight = Math.max(60, Math.round(vh * 0.35));
+    const stripY = Math.round((vh - stripHeight) / 2);
+
+    canvas.width = vw;
+    canvas.height = stripHeight;
+    ctx.drawImage(video, 0, stripY, vw, stripHeight, 0, 0, vw, stripHeight);
+
+    let imageData: ImageData;
+    try {
+      imageData = ctx.getImageData(0, 0, vw, stripHeight);
+    } catch {
+      return;
+    }
+
+    try {
+      const results = await readBarcodes(imageData, {
+        tryHarder: true,
+        formats: [
+          'EAN13',
+          'EAN8',
+          'UPCA',
+          'UPCE',
+          'Code128',
+          'Code39',
+          'ITF',
+        ],
+        maxNumberOfSymbols: 1,
+      });
+
+      if (results.length === 0) return;
+      const code = results[0].text;
+      if (!code || code.length < 3) return;
+
+      const now = Date.now();
+      this.detections = this.detections.filter((d) => now - d.time < 2000);
+      this.detections.push({ code, time: now });
+
+      const sameCode = this.detections.filter((d) => d.code === code);
+      if (sameCode.length >= 2) {
+        this.detections = [];
+        this.stop();
+        onDetected(code);
+      }
+    } catch {
+      /* ignore */
+    }
   }
 }
