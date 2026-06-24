@@ -12,6 +12,7 @@ export class Scanner {
   private scanInterval: ReturnType<typeof setInterval> | null = null;
   private stopped = false;
   private videoEl: HTMLVideoElement | null = null;
+  private observer: MutationObserver | null = null;
 
   async start(
     container: HTMLElement,
@@ -30,6 +31,10 @@ export class Scanner {
     if (this.scanInterval !== null) {
       clearInterval(this.scanInterval);
       this.scanInterval = null;
+    }
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
     }
     this.stream?.getTracks().forEach((t) => t.stop());
     this.stream = null;
@@ -92,6 +97,27 @@ export class Scanner {
     });
   }
 
+  private async ensureQuaggaVideoPlaysinline(container: HTMLElement) {
+    const video = container.querySelector('video');
+    if (video) {
+      video.setAttribute('playsinline', '');
+      video.setAttribute('muted', '');
+      video.muted = true;
+      return;
+    }
+    this.observer = new MutationObserver(() => {
+      const v = container.querySelector('video');
+      if (v) {
+        v.setAttribute('playsinline', '');
+        v.setAttribute('muted', '');
+        v.muted = true;
+        this.observer?.disconnect();
+        this.observer = null;
+      }
+    });
+    this.observer.observe(container, { childList: true, subtree: true });
+  }
+
   private startQuagga(
     container: HTMLElement,
     onDetected: ScanCallback,
@@ -103,8 +129,9 @@ export class Scanner {
             type: 'LiveStream',
             target: container,
             constraints: {
+              width: { min: 640 },
+              height: { min: 480 },
               facingMode: 'environment',
-              aspectRatio: { min: 1, max: 2 },
             },
           },
           decoder: {
@@ -118,16 +145,19 @@ export class Scanner {
           },
           locate: false,
         },
-        (err: unknown) => {
+        async (err: unknown) => {
           if (err) {
             reject(err);
             return;
           }
+          await this.ensureQuaggaVideoPlaysinline(container);
           Quagga.start();
           Quagga.onDetected((data: { codeResult: { code: string | null } }) => {
             if (this.stopped) return;
-            this.stop();
-            if (data.codeResult.code) onDetected(data.codeResult.code);
+            if (data.codeResult.code) {
+              this.stop();
+              onDetected(data.codeResult.code);
+            }
           });
           resolve();
         },
