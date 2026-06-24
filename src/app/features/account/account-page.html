@@ -1,0 +1,317 @@
+<div class="mx-auto max-w-6xl space-y-5 pb-8">
+  <!-- Header -->
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-widest text-indigo-600">Mi panel</p>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+        Hola, {{ store.accountFirstName() }}
+      </h1>
+    </div>
+    <button
+      type="button"
+      class="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95"
+      (click)="store.setView('store')"
+    >
+      <svg lucideShoppingBag class="size-4" />
+      Ir a comprar
+    </button>
+  </div>
+
+  <!-- Métricas del mes -->
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <article
+      class="flex items-center gap-4 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm"
+    >
+      <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-indigo-50">
+        <svg lucideTrendingUp class="size-5 text-indigo-600" />
+      </span>
+      <div>
+        <span class="block text-xs font-bold uppercase tracking-wide text-slate-400">Este mes</span>
+        <strong class="block text-xl font-bold text-slate-900">{{
+          store.accountMonthlyTotal() | currency: 'S/. '
+        }}</strong>
+      </div>
+    </article>
+
+    <article
+      class="flex items-center gap-4 rounded-2xl border p-4 shadow-sm"
+      [class.border-amber-200]="store.accountOutstandingTotal() > 0"
+      [class.bg-amber-50]="store.accountOutstandingTotal() > 0"
+      [class.border-emerald-100]="store.accountOutstandingTotal() === 0"
+      [class.bg-white]="store.accountOutstandingTotal() === 0"
+    >
+      <span
+        class="grid size-10 shrink-0 place-items-center rounded-xl"
+        [class.bg-amber-100]="store.accountOutstandingTotal() > 0"
+        [class.bg-emerald-50]="store.accountOutstandingTotal() === 0"
+      >
+        @if (store.accountOutstandingTotal() > 0) {
+          <svg lucideAlertCircle class="size-5 text-amber-600" />
+        } @else {
+          <svg lucideCheckCircle class="size-5 text-emerald-600" />
+        }
+      </span>
+      <div>
+        <span class="block text-xs font-bold uppercase tracking-wide text-slate-400"
+          >Pendiente</span
+        >
+        <strong
+          class="block text-xl font-bold"
+          [class.text-amber-700]="store.accountOutstandingTotal() > 0"
+          [class.text-emerald-700]="store.accountOutstandingTotal() === 0"
+          >{{ store.accountOutstandingTotal() | currency: 'S/. ' }}</strong
+        >
+      </div>
+    </article>
+
+    <article
+      class="flex items-center gap-4 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm"
+    >
+      <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-indigo-50">
+        <svg lucideWallet class="size-5 text-indigo-600" />
+      </span>
+      <div>
+        <span class="block text-xs font-bold uppercase tracking-wide text-slate-400"
+          >Pagado ya</span
+        >
+        <strong class="block text-xl font-bold text-slate-900">{{
+          store.accountPaidNowTotal() | currency: 'S/. '
+        }}</strong>
+      </div>
+    </article>
+  </div>
+
+  <!-- Resumen rápido: últimas compras + productos más comprados -->
+  <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <!-- Historial -->
+    <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
+      <div class="mb-4 space-y-2">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <svg lucideCalendar class="size-4 text-indigo-600" />
+            <h2 class="font-bold text-slate-900">Historial</h2>
+          </div>
+          <div class="flex gap-1">
+            @for (filter of statusFilters; track filter.value) {
+              <button
+                type="button"
+                class="rounded-lg px-3 py-1 text-xs font-bold transition"
+                [class.bg-indigo-600]="statusFilter() === filter.value"
+                [class.text-white]="statusFilter() === filter.value"
+                [class.bg-slate-100]="statusFilter() !== filter.value"
+                [class.text-slate-600]="statusFilter() !== filter.value"
+                (click)="statusFilter.set(filter.value)"
+              >
+                {{ filter.label }}
+              </button>
+            }
+          </div>
+        </div>
+        @if (availableMonths().length > 1) {
+          <div class="flex flex-wrap gap-1">
+            <button
+              type="button"
+              class="rounded-lg px-3 py-1 text-xs font-bold transition"
+              [class.bg-slate-800]="monthFilter() === 'all'"
+              [class.text-white]="monthFilter() === 'all'"
+              [class.bg-slate-100]="monthFilter() !== 'all'"
+              [class.text-slate-600]="monthFilter() !== 'all'"
+              (click)="monthFilter.set('all')"
+            >
+              Todos
+            </button>
+            @for (m of availableMonths(); track m) {
+              <button
+                type="button"
+                class="rounded-lg px-3 py-1 text-xs font-bold transition"
+                [class.bg-slate-800]="monthFilter() === m"
+                [class.text-white]="monthFilter() === m"
+                [class.bg-slate-100]="monthFilter() !== m"
+                [class.text-slate-600]="monthFilter() !== m"
+                (click)="monthFilter.set(m)"
+              >
+                {{ formatMonth(m) }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      @if (pendingInFilter().length > 1) {
+        <div class="mb-3 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <span class="text-sm font-semibold text-amber-800">
+            {{ pendingInFilter().length }} pagos pendientes
+          </span>
+          <button
+            type="button"
+            class="flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-amber-700"
+            (click)="payAll()"
+          >
+            <svg lucideCreditCard class="size-3.5" />
+            Pagar todo
+          </button>
+        </div>
+      }
+
+      <div class="space-y-2">
+        @for (record of filteredHistory(); track record.id) {
+          <article class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-sm font-bold text-slate-900">{{ record.date }}</span>
+                  <span
+                    class="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold"
+                    [class.bg-emerald-100]="record.paid"
+                    [class.text-emerald-700]="record.paid"
+                    [class.bg-amber-100]="!record.paid"
+                    [class.text-amber-700]="!record.paid"
+                  >
+                    @if (record.paid) {
+                      <svg lucideCheckCircle class="size-3" />
+                    } @else {
+                      <svg lucideClock class="size-3" />
+                    }
+                    {{ record.paid ? 'Pagado' : 'Pendiente' }}
+                  </span>
+                  <span class="text-xs text-slate-400">{{ record.paymentMode }}</span>
+                </div>
+                @if (record.detail.length) {
+                  <div class="mt-1.5 flex flex-wrap gap-1">
+                    @for (item of record.detail; track item.productName) {
+                      <span
+                        class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-600"
+                      >
+                        {{ item.quantity }}× {{ item.productName }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+              <div class="flex shrink-0 flex-col items-end gap-1.5">
+                <strong class="text-base font-bold text-slate-900">{{
+                  record.total | currency: 'S/. '
+                }}</strong>
+                @if (!record.paid) {
+                  <button
+                    type="button"
+                    class="flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-bold text-white transition hover:bg-indigo-700"
+                    (click)="store.payConsumption(record.id)"
+                  >
+                    <svg lucideCreditCard class="size-3" />
+                    Pagar
+                  </button>
+                }
+              </div>
+            </div>
+          </article>
+        } @empty {
+          <div class="rounded-xl border border-dashed border-indigo-200 p-8 text-center">
+            <svg lucideShoppingBag class="mx-auto mb-3 size-8 text-slate-300" />
+            <p class="text-sm text-slate-500">Aún no tienes compras registradas.</p>
+            <button
+              type="button"
+              class="mt-3 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700"
+              (click)="store.setView('store')"
+            >
+              Hacer mi primera compra
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Sidebar: productos más comprados -->
+    <aside class="space-y-5">
+      <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
+        <div class="mb-4 flex items-center gap-2">
+          <svg lucidePackage class="size-4 text-indigo-600" />
+          <h2 class="font-bold text-slate-900">Más comprados</h2>
+        </div>
+
+        @if (topProducts().length) {
+          <ol class="space-y-2">
+            @for (item of topProducts(); track item.name; let i = $index) {
+              <li
+                class="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5"
+              >
+                <div class="flex items-center gap-2.5">
+                  <span
+                    class="grid size-6 shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-black text-indigo-700"
+                    >{{ i + 1 }}</span
+                  >
+                  <span class="text-sm font-semibold text-slate-800">{{ item.name }}</span>
+                </div>
+                <span class="shrink-0 text-xs font-bold text-slate-500">{{ item.qty }} uds.</span>
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="text-sm text-slate-400">Sin datos aún.</p>
+        }
+      </section>
+
+      <!-- Estado del mes -->
+      <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
+        <div class="mb-3 flex items-center gap-2">
+          <svg lucideCalendar class="size-4 text-indigo-600" />
+          <h2 class="font-bold text-slate-900">Estado del mes</h2>
+        </div>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-slate-500">Compras realizadas</span>
+            <strong class="text-slate-900">{{ store.accountHistory().length }}</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Total gastado</span>
+            <strong class="text-slate-900">{{
+              store.accountMonthlyTotal() | currency: 'S/. '
+            }}</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Por cobrar</span>
+            <strong
+              [class.text-amber-600]="store.accountOutstandingTotal() > 0"
+              [class.text-emerald-600]="store.accountOutstandingTotal() === 0"
+            >
+              {{ store.accountOutstandingTotal() | currency: 'S/. ' }}
+            </strong>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Sugerir un producto -->
+  <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
+    <div class="mb-4 flex items-center gap-2">
+      <svg lucideMessageSquare class="size-4 text-indigo-600" />
+      <h2 class="font-bold text-slate-900">Sugerir un producto</h2>
+    </div>
+    <form class="grid gap-3 sm:grid-cols-[1fr_1fr_auto]" (ngSubmit)="store.submitSuggestion()">
+      <input
+        class="rounded-xl border border-indigo-100 px-3 py-2.5 text-sm outline-none focus:border-indigo-500"
+        name="suggestionName"
+        type="text"
+        placeholder="Nombre del producto"
+        [ngModel]="store.suggestionName()"
+        (ngModelChange)="store.suggestionName.set($event)"
+      />
+      <input
+        class="rounded-xl border border-indigo-100 px-3 py-2.5 text-sm outline-none focus:border-indigo-500"
+        name="suggestionReason"
+        type="text"
+        placeholder="¿Por qué debería estar en el stand?"
+        [ngModel]="store.suggestionReason()"
+        (ngModelChange)="store.suggestionReason.set($event)"
+      />
+      <button
+        type="submit"
+        class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+        [disabled]="!store.suggestionName().trim() || !store.suggestionReason().trim()"
+      >
+        Enviar
+      </button>
+    </form>
+  </section>
+</div>

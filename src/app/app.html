@@ -1,0 +1,129 @@
+<main class="min-h-screen px-4 py-6 sm:px-6 lg:px-8"
+  style="background: radial-gradient(circle at top left, rgba(20,184,166,.18), transparent 32rem), radial-gradient(circle at top right, rgba(99,102,241,.18), transparent 30rem), linear-gradient(135deg,#f8fbff 0%,#eef6ff 46%,#f5f3ff 100%)"
+>
+  <nav class="relative z-10 mx-auto mb-6 flex max-w-6xl items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm"
+    aria-label="Navegación principal"
+  >
+    <!-- Brand -->
+    <a
+      href="#"
+      class="flex shrink-0 items-center gap-2 font-black text-slate-900 no-underline"
+      (click)="store.setView('store'); $event.preventDefault()"
+    >
+      <svg lucideCandy class="size-5 text-indigo-600" />
+      <span class="hidden sm:block">Dulcería</span>
+    </a>
+
+    <!-- Nav links -->
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        class="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition"
+        [class.bg-indigo-600]="store.view() === 'store'"
+        [class.text-white]="store.view() === 'store'"
+        [class.text-slate-600]="store.view() !== 'store'"
+        [class.hover:bg-slate-100]="store.view() !== 'store'"
+        (click)="store.setView('store')"
+      >
+        <svg lucideShoppingBag class="size-4" />
+        <span>Tienda</span>
+      </button>
+
+      @if (store.isNormalUser()) {
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition"
+          [class.bg-indigo-600]="store.view() === 'account'"
+          [class.text-white]="store.view() === 'account'"
+          [class.text-slate-600]="store.view() !== 'account'"
+          [class.hover:bg-slate-100]="store.view() !== 'account'"
+          (click)="store.setView('account')"
+        >
+          <svg lucideLayoutDashboard class="size-4" />
+          <span>Mi panel</span>
+        </button>
+      }
+
+      @if (store.isAdmin()) {
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition"
+          [class.bg-indigo-600]="store.view() === 'admin'"
+          [class.text-white]="store.view() === 'admin'"
+          [class.text-slate-600]="store.view() !== 'admin'"
+          [class.hover:bg-slate-100]="store.view() !== 'admin'"
+          (click)="store.setView('admin')"
+        >
+          <svg lucideSettings class="size-4" />
+          <span>Admin</span>
+        </button>
+      }
+    </div>
+
+    <!-- Auth -->
+    <div class="flex shrink-0 items-center gap-2">
+      @if (store.user(); as currentUser) {
+        <span class="hidden max-w-[140px] truncate text-sm font-semibold text-slate-500 sm:block">
+          {{ currentUser.name }}
+        </span>
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+          (click)="store.logout()"
+        >
+          <svg lucideLogOut class="size-4" />
+          <span class="hidden sm:block">Salir</span>
+        </button>
+      } @else {
+        <div class="relative">
+          <button
+            type="button"
+            class="flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-indigo-700"
+            (click)="toggleLogin($event)"
+          >
+            <span>Iniciar sesión</span>
+            <svg lucideChevronDown class="size-3.5 transition-transform duration-200" [class.-rotate-180]="loginOpen()" />
+          </button>
+
+          @if (loginOpen()) {
+            <div class="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-white/60 bg-white/90 shadow-lg backdrop-blur-sm">
+              <div class="px-3 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Continuar con
+              </div>
+              <div class="px-2 pb-2">
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-indigo-50"
+                  (click)="store.login('Google')"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0" viewBox="0 0 48 48">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    <path fill="none" d="M0 0h48v48H0z"/>
+                  </svg>
+                  Google
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </nav>
+
+  @if (store.error(); as error) {
+    <div class="mx-auto mb-4 max-w-6xl rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+      {{ error }} Revisa que el backend Go esté activo en el puerto 3000.
+    </div>
+  }
+
+  @if (store.view() === 'account' && store.isNormalUser()) {
+    <app-account-page />
+  } @else if (store.view() === 'admin' && store.isAdmin()) {
+    <app-admin-page />
+  } @else {
+    <app-store-page />
+  }
+</main>

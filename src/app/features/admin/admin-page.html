@@ -1,0 +1,329 @@
+<section class="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+  <aside
+    class="grid gap-2 self-start rounded-3xl border border-indigo-100 bg-white/90 p-5 shadow-sm lg:sticky lg:top-6"
+    aria-label="Módulos de administración"
+  >
+    <p class="mb-1 text-xs font-bold uppercase tracking-widest text-indigo-600">Panel dulcería</p>
+    <h2 class="mb-2 text-2xl font-bold tracking-tight text-slate-900">Admin</h2>
+    <button
+      class="admin-nav-button"
+      type="button"
+      [class.active]="store.adminSection() === 'dashboard'"
+      (click)="store.setAdminSection('dashboard')"
+    >
+      Dashboard
+    </button>
+    <button
+      class="admin-nav-button"
+      type="button"
+      [class.active]="store.adminSection() === 'products'"
+      (click)="store.setAdminSection('products')"
+    >
+      Productos
+    </button>
+    <button
+      class="admin-nav-button"
+      type="button"
+      [class.active]="store.adminSection() === 'ledger'"
+      (click)="store.setAdminSection('ledger')"
+    >
+      Consumos
+    </button>
+    <button
+      class="admin-nav-button"
+      type="button"
+      [class.active]="store.adminSection() === 'users'"
+      (click)="store.setAdminSection('users')"
+    >
+      Usuarios
+    </button>
+    <button
+      class="admin-nav-button"
+      type="button"
+      [class.active]="store.adminSection() === 'suggestions'"
+      (click)="store.setAdminSection('suggestions')"
+    >
+      Sugerencias
+    </button>
+  </aside>
+
+  <div class="min-w-0">
+    @if (store.adminSection() === 'dashboard') {
+      <div class="rounded-3xl border border-indigo-100 bg-white/90 p-5 shadow-sm">
+        <div>
+          <p class="mb-1 text-xs font-bold uppercase tracking-widest text-indigo-600">
+            Operación interna
+          </p>
+          <h1 class="mb-2 text-3xl font-bold leading-tight tracking-[-0.035em] text-slate-900">
+            Resumen del stand
+          </h1>
+          <p class="text-slate-500">Inventario, consumos y pendientes del mes actual.</p>
+        </div>
+      </div>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <article class="metric-card">
+          <span class="metric-label">Valor de inventario</span>
+          <strong class="metric-value">{{ store.inventoryValue() | currency: 'S/. ' }}</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Consumo del mes</span>
+          <strong class="metric-value">{{ store.monthlyTotal() | currency: 'S/. ' }}</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Pendiente fin de mes</span>
+          <strong class="metric-value">{{ store.outstandingTotal() | currency: 'S/. ' }}</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Pagado al momento</span>
+          <strong class="metric-value">{{ store.paidNowTotal() | currency: 'S/. ' }}</strong>
+        </article>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="admin-panel mini-panel">
+          <div class="section-heading compact">
+            <p class="eyebrow">Por trabajador</p>
+            <h2>Consumo mensual</h2>
+          </div>
+          <div class="admin-table">
+            @for (person of store.personSummaries(); track person.employee) {
+              <article class="table-row person-row">
+                <div>
+                  <strong>{{ person.employee }}</strong>
+                  <span
+                    >{{ person.items }} productos · pagado
+                    {{ person.paid | currency: 'S/. ' }}</span
+                  >
+                </div>
+                <strong>{{ person.total | currency: 'S/. ' }}</strong>
+                <span class="status-pill">Debe {{ person.pending | currency: 'S/. ' }}</span>
+              </article>
+            }
+          </div>
+        </div>
+
+        <div class="admin-panel mini-panel">
+          <div class="section-heading compact">
+            <p class="eyebrow">Por producto</p>
+            <h2>Más consumidos</h2>
+          </div>
+          <div class="admin-table">
+            @for (product of store.productSummaries(); track product.productName) {
+              <article class="table-row product-summary-row">
+                <div>
+                  <strong>{{ product.productName }}</strong>
+                  <span>{{ product.quantity }} unidades tomadas</span>
+                </div>
+                <strong>{{ product.total | currency: 'S/. ' }}</strong>
+              </article>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (store.adminSection() === 'products') {
+      <div class="admin-panel">
+        <div class="section-heading compact">
+          <p class="eyebrow">Inventario</p>
+          <h2>Productos de dulcería</h2>
+        </div>
+        <form class="admin-form" (ngSubmit)="store.addProduct()">
+          <input
+            name="adminProductName"
+            type="text"
+            placeholder="Nombre"
+            [ngModel]="store.productName()"
+            (ngModelChange)="store.productName.set($event)"
+          />
+          <input
+            name="adminProductCategory"
+            type="text"
+            placeholder="Categoría"
+            [ngModel]="store.productCategory()"
+            (ngModelChange)="store.productCategory.set($event)"
+          />
+          <input
+            name="adminProductUnit"
+            type="text"
+            placeholder="Unidad (ej: Bolsa 36 g)"
+            [ngModel]="store.productUnit()"
+            (ngModelChange)="store.productUnit.set($event)"
+          />
+          <input
+            name="adminProductPrice"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Precio"
+            [ngModel]="store.productPrice()"
+            (ngModelChange)="store.productPrice.set($event)"
+          />
+          <input
+            name="adminProductStock"
+            type="number"
+            min="0"
+            placeholder="Stock"
+            [ngModel]="store.productStock()"
+            (ngModelChange)="store.productStock.set($event)"
+          />
+          <div class="barcode-field-row">
+            <input
+              name="adminProductBarcode"
+              type="text"
+              placeholder="Código de barras"
+              [ngModel]="store.productBarcode()"
+              (ngModelChange)="store.productBarcode.set($event)"
+            />
+            <button type="button" class="scan-button" (click)="openScanner()">
+              Escanear
+            </button>
+          </div>
+          <button type="submit" class="add-button">Agregar producto</button>
+        </form>
+
+        @if (scannerMessage()) {
+          <div class="scanner-message">{{ scannerMessage() }}</div>
+        }
+
+        @if (scannerOpen()) {
+          <div class="scanner-overlay" (click)="closeScanner()">
+            <div class="scanner-modal" (click)="$event.stopPropagation()">
+              <div class="scanner-header">
+                <span class="scanner-title">Escanear código de barras</span>
+                <button type="button" class="scanner-close" (click)="closeScanner()">✕</button>
+              </div>
+              <div class="scanner-body">
+                @if (scannerLoading()) {
+                  <div class="scanner-loading">Activando cámara…</div>
+                }
+                <video id="admin-scanner-video" class="scanner-video" [class.hidden]="scannerLoading()" playsinline></video>
+                @if (scannerMessage()) {
+                  <div class="scanner-status">{{ scannerMessage() }}</div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+        <div class="admin-table">
+          @for (product of store.products(); track product.id) {
+            <article class="table-row">
+              <div>
+                <strong>{{ product.name }}</strong>
+                <span
+                  >{{ product.category }}@if (product.unit) { · {{ product.unit }}} · {{ product.stock }} unidades ·
+                  {{ product.rating }}★</span
+                >
+              </div>
+              <strong>{{ product.price | currency: 'S/. ' }}</strong>
+              <button type="button" class="danger-button" (click)="store.deleteProduct(product.id)">
+                Eliminar
+              </button>
+            </article>
+          }
+        </div>
+      </div>
+    }
+
+    @if (store.adminSection() === 'ledger') {
+      <div class="admin-panel">
+        <div class="section-heading compact">
+          <p class="eyebrow">Cuaderno digital</p>
+          <h2>Histórico de consumos</h2>
+        </div>
+        <div class="admin-table">
+          @for (record of store.consumptionRecords(); track record.id) {
+            <article class="table-row ledger-row">
+              <div>
+                <strong>{{ record.id }} · {{ record.employee }}</strong>
+                <span
+                  >{{ record.date }} · {{ record.items }} productos · {{ record.paymentMode }}</span
+                >
+                <small>
+                  @for (item of record.detail; track item.productName) {
+                    {{ item.quantity }}x {{ item.productName }}{{ !$last ? ' · ' : '' }}
+                  }
+                </small>
+              </div>
+              <strong>{{ record.total | currency: 'S/. ' }}</strong>
+              <span class="status-pill">{{ record.paid ? 'Pagado' : 'Pendiente' }}</span>
+              @if (!record.paid) {
+                <button
+                  type="button"
+                  class="ghost-button"
+                  (click)="store.markConsumptionPaid(record.id)"
+                >
+                  Marcar pagado
+                </button>
+              }
+            </article>
+          }
+        </div>
+      </div>
+    }
+
+    @if (store.adminSection() === 'users') {
+      <div class="admin-panel">
+        <div class="section-heading compact">
+          <p class="eyebrow">Accesos</p>
+          <h2>Trabajadores y caja</h2>
+        </div>
+        <div class="admin-table">
+          @for (adminUser of store.adminUsers(); track adminUser.id) {
+            <article class="table-row">
+              <div>
+                <strong>{{ adminUser.name }}</strong>
+                <span>{{ adminUser.email }} · {{ adminUser.role }}</span>
+              </div>
+              <span class="status-pill">{{ adminUser.status }}</span>
+              <button
+                type="button"
+                class="ghost-button"
+                (click)="store.toggleUserStatus(adminUser.id)"
+              >
+                {{ adminUser.status === 'Activo' ? 'Bloquear' : 'Activar' }}
+              </button>
+            </article>
+          }
+        </div>
+      </div>
+    }
+
+    @if (store.adminSection() === 'suggestions') {
+      <div class="admin-panel">
+        <div class="section-heading compact">
+          <p class="eyebrow">Feedback</p>
+          <h2>Sugerencias de dulces</h2>
+        </div>
+        <div class="admin-table">
+          @for (suggestion of store.suggestions(); track suggestion.id) {
+            <article class="table-row suggestion-admin-row">
+              <div>
+                <strong>{{ suggestion.name }}</strong>
+                <span>{{ suggestion.reason }}</span>
+              </div>
+              <span class="status-pill">{{ suggestion.status }}</span>
+              <div class="row-actions">
+                <button
+                  type="button"
+                  class="ghost-button"
+                  (click)="store.updateSuggestionStatus(suggestion.id, 'Aprobada')"
+                >
+                  Aprobar
+                </button>
+                <button
+                  type="button"
+                  class="danger-button"
+                  (click)="store.updateSuggestionStatus(suggestion.id, 'Rechazada')"
+                >
+                  Rechazar
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</section>
