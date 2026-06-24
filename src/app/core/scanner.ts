@@ -95,13 +95,13 @@ export class Scanner {
           },
           locate: false,
         },
-        (err) => {
+        (err: unknown) => {
           if (err) {
             reject(err);
             return;
           }
           Quagga.start();
-          Quagga.onDetected((data) => {
+          Quagga.onDetected((data: { codeResult: { code: string } }) => {
             if (this.stopped) return;
             this.stop();
             if (data.codeResult.code) onDetected(data.codeResult.code);
