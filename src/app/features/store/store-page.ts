@@ -1,6 +1,6 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
-import { LucideCandy, LucideCheckCircle, LucideShoppingBag } from '@lucide/angular';
+import { Component, computed, inject, signal } from '@angular/core';
+import { LucideCandy, LucideCheckCircle, LucideSearch, LucideShoppingBag } from '@lucide/angular';
 import { BadgeModule } from 'primeng/badge';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -11,7 +11,7 @@ import { Scanner, prewarmZXing } from '../../core/scanner';
 
 @Component({
   selector: 'app-store-page',
-  imports: [BadgeModule, ButtonModule, CurrencyPipe, LucideCandy, LucideCheckCircle, LucideShoppingBag, DialogModule],
+  imports: [BadgeModule, ButtonModule, CurrencyPipe, LucideCandy, LucideCheckCircle, LucideSearch, LucideShoppingBag, DialogModule],
   templateUrl: './store-page.html',
   styleUrl: './store-page.css',
 })
@@ -22,6 +22,13 @@ export class StorePage {
   readonly yapeStep = signal<1 | 2>(1);
   readonly yapeProofPreview = signal<string | null>(null);
   readonly scanFileLoading = signal(false);
+
+  readonly productSearch = signal('');
+  readonly filteredProducts = computed(() => {
+    const q = this.productSearch().trim().toLowerCase();
+    if (!q) return this.store.products();
+    return this.store.products().filter((p) => p.name.toLowerCase().includes(q));
+  });
 
   readonly scannerOpen = signal(false);
   readonly scannerLoading = signal(false);

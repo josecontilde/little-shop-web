@@ -23,9 +23,20 @@
       </div>
     </div>
 
+    <div class="relative mb-4">
+      <svg lucideSearch class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+      <input
+        type="search"
+        placeholder="Buscar producto…"
+        class="w-full rounded-full border border-indigo-100 bg-slate-50 py-2 pl-9 pr-4 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+        [value]="productSearch()"
+        (input)="productSearch.set($any($event.target).value)"
+      />
+    </div>
+
     @if (store.user()) {
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        @for (product of store.products(); track product.id) {
+        @for (product of filteredProducts(); track product.id) {
           <button
             type="button"
             class="min-h-36 rounded-2xl border border-indigo-100 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
@@ -58,7 +69,11 @@
           <div
             class="col-span-full rounded-2xl border border-dashed border-indigo-200 p-6 text-center text-slate-500"
           >
-            No hay productos disponibles.
+            @if (productSearch()) {
+              No se encontró ningún producto con ese nombre.
+            } @else {
+              No hay productos disponibles.
+            }
           </div>
         }
       </div>
