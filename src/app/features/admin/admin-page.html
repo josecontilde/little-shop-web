@@ -208,7 +208,24 @@
         }
         <div class="admin-table">
           @for (product of store.products(); track product.id) {
-            <article class="table-row">
+            <article class="table-row product-admin-row">
+              <label class="product-image-upload" title="Cambiar imagen">
+                @if (product.image?.startsWith('/uploads/')) {
+                  <img
+                    [src]="'https://little-shop-core.beweregroup.com' + product.image"
+                    class="product-thumb"
+                    [alt]="product.name"
+                  />
+                } @else {
+                  <span class="product-thumb-placeholder">{{ product.image || '🍡' }}</span>
+                }
+                <input
+                  type="file"
+                  accept="image/*"
+                  class="hidden"
+                  (change)="uploadImage(product.id, $event)"
+                />
+              </label>
               <div>
                 <strong>{{ product.name }}</strong>
                 <span

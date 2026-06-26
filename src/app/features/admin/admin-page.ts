@@ -84,4 +84,10 @@ export class AdminPage {
     this.scannerOpen.set(false);
     this.scannerMessage.set('');
   }
+
+  uploadImage(productId: number, event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.store.uploadProductImage(productId, file);
+  }
 }

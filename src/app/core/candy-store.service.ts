@@ -289,6 +289,21 @@ export class CandyStoreService {
       });
   }
 
+  uploadProductImage(productId: number, file: File) {
+    const form = new FormData();
+    form.append('image', file);
+    this.http
+      .post<Product>(`${this.apiUrl}/products/${productId}/image`, form, { withCredentials: true })
+      .subscribe({
+        next: (updated) => {
+          this.products.update((products) =>
+            products.map((p) => (p.id === updated.id ? updated : p)),
+          );
+        },
+        error: () => this.setError('No se pudo subir la imagen.'),
+      });
+  }
+
   deleteProduct(productId: number) {
     this.http
       .delete<void>(`${this.apiUrl}/products/${productId}`, { withCredentials: true })

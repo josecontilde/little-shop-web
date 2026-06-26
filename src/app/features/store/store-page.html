@@ -43,8 +43,16 @@
             (click)="store.addToCart(product)"
           >
             <div class="mb-3 flex items-start justify-between gap-2">
-              <span class="grid size-14 place-items-center rounded-2xl bg-slate-50">
-                <svg lucideCandy class="size-7 text-slate-300" />
+              <span class="grid size-14 place-items-center overflow-hidden rounded-2xl bg-slate-50">
+                @if (product.image?.startsWith('/uploads/')) {
+                  <img
+                    [src]="'https://little-shop-core.beweregroup.com' + product.image"
+                    class="size-14 object-cover"
+                    [alt]="product.name"
+                  />
+                } @else {
+                  <svg lucideCandy class="size-7 text-slate-300" />
+                }
               </span>
               @if (store.cartQuantity(product.id)) {
                 <span class="rounded-full bg-indigo-600 px-2 py-1 text-xs font-bold text-white"

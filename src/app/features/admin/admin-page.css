@@ -255,6 +255,43 @@ select {
   background: #fff;
 }
 
+.product-admin-row {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.product-image-upload {
+  display: block;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.product-thumb {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.625rem;
+  object-fit: cover;
+  border: 1px solid rgba(79, 70, 229, 0.1);
+  transition: opacity 0.15s;
+}
+
+.product-thumb-placeholder {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.625rem;
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+  font-size: 1.5rem;
+  transition: background 0.15s;
+}
+
+.product-image-upload:hover .product-thumb,
+.product-image-upload:hover .product-thumb-placeholder {
+  opacity: 0.75;
+}
+
 .table-row strong,
 .table-row span,
 .table-row small {
@@ -279,6 +316,7 @@ select {
 .order-row {
   grid-template-columns: minmax(0, 1fr) auto;
 }
+
 
 .status-pill {
   display: inline-flex;
